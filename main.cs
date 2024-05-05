@@ -23,7 +23,7 @@ namespace FiberLib
     {
         public static byte[] signature = [223, 145];
     }
-    [BepInPlugin(pluginGuid, "FiberLib", "1.0.0")]
+    [BepInPlugin(pluginGuid, "FiberLib", "1.1.0")]
     [BepInProcess("BoplBattle.exe")]
     public class FiberLibPlugin : BaseUnityPlugin
     {
@@ -31,7 +31,7 @@ namespace FiberLib
         public static SteamManager curManager;
         public static SteamSocket curSocket;
 
-        private void handler(byte[] packet)
+        private void handler(byte[] packet, Connection connection, NetIdentity identity)
         {
             Console.WriteLine("Plugin received packet");
             byte[] data = PacketUtils.GetData(packet);
@@ -78,22 +78,21 @@ namespace FiberLib
             if (!(messageBuffer[0] == metadata.signature[0] && messageBuffer[1] == metadata.signature[1])) return true;
 
             //handling packets
-            PacketManager.RunHandler(messageBuffer);
-
+            PacketManager.RunHandler(messageBuffer,  connection,  identity);
 
 
             //return to default method
             return true;
         }
 
-        private void OnGUI()
+/*        private void OnGUI()
         {
             if (GUI.Button(new Rect(0, 50, 170f, 30f), "Send Packet"))
             {
                 Console.WriteLine("Sending packet!");
                 PacketUtils.SendPacket(testSignature, Encoding.UTF8.GetBytes("Hello, World!"));
             }
-        }
+        }*/
 
     }
     public class PacketUtils()
@@ -114,7 +113,7 @@ namespace FiberLib
     }
     public class PacketManager()
     {
-        public delegate void MethodDelegate(byte[] data);
+        public delegate void MethodDelegate(byte[] data, Connection connection, NetIdentity identity);
 
         private static List<byte[]> indexList = [];
         private static List<MethodDelegate> methodList = new List<MethodDelegate>();
@@ -166,13 +165,13 @@ namespace FiberLib
             methodList.Add(method);
             return sign;
         }
-        public static void RunHandler(byte[] packet)
+        public static void RunHandler(byte[] packet, Connection connection, NetIdentity identity)
         {
             for (int i = 0; i < indexList.Count; i++)
             {
                 if (indexList[i][0] == packet[2] && indexList[i][1] == packet[3])
                 {
-                    methodList[i](packet);
+                    methodList[i](packet,connection,identity);
                     break;
                 }
 
