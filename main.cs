@@ -14,6 +14,7 @@ using Steamworks.Data;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Collections;
+using System.Text;
 
 
 namespace FiberLib
@@ -33,7 +34,11 @@ namespace FiberLib
         private void handler(byte[] packet)
         {
             Console.WriteLine("Plugin received packet");
-            Console.WriteLine("Packet data at index 0: " + PacketUtils.GetData(packet)[0]);
+            void loop(byte theByte)
+            {
+                Console.WriteLine(theByte);
+            }
+            packet.Do(loop);
             return;
         }
         public byte[] testSignature;
@@ -76,7 +81,6 @@ namespace FiberLib
             if (!(messageBuffer[0] == metadata.signature[0] && messageBuffer[1] == metadata.signature[1])) return true;
 
             //handling packets
-            Console.WriteLine("Custom packet received!");
             PacketManager.RunHandler(messageBuffer);
 
 
@@ -90,19 +94,19 @@ namespace FiberLib
             if (GUI.Button(new Rect(0, 50, 170f, 30f), "Send Packet"))
             {
                 Console.WriteLine("Sending packet!");
-                PacketUtils.SendPacket(testSignature, (byte[])[(byte)12]);
+                PacketUtils.SendPacket(testSignature, Encoding.UTF8.GetBytes("Hello, World!"));
             }
         }
 
     }
     public class PacketUtils()
     {
-        static public void SendPacket(byte[] signature,byte[] sendData)
+        public static void SendPacket(byte[] signature, byte[] sendData)
         {
             byte[] data = PacketManager.constructPacket(signature, sendData);
             PacketManager.distributePacket(FiberLibPlugin.curManager, data);
         }
-        static public byte[] GetData(byte[] byteArray)
+        public static byte[] GetData(byte[] byteArray)
         {
             byte[] result = new byte[byteArray.Length - 4];
 
@@ -115,8 +119,8 @@ namespace FiberLib
     {
         public delegate void MethodDelegate(byte[] data);
 
-        static private List<byte[]> indexList = [];
-        static private List<MethodDelegate> methodList = new List<MethodDelegate>();
+        private static List<byte[]> indexList = [];
+        private static List<MethodDelegate> methodList = new List<MethodDelegate>();
         private static byte[] Combine(byte[] first, byte[] second, byte[] third)
         {
             byte[] ret = new byte[first.Length + second.Length + third.Length];
@@ -128,7 +132,7 @@ namespace FiberLib
         }
         public static byte[] constructPacket(byte[] pluginSignature, byte[] sendData)
         {
-            //todo: discovered that it is more efficient to use a list and then convert it to an array
+            // Todo: discovered that it is more efficient to use a list and then convert it to an array
             int size = sendData.Length;
             byte[] data;
             data = Combine(metadata.signature, pluginSignature, sendData);
@@ -144,11 +148,11 @@ namespace FiberLib
             return true;
         }
 
-        static public int signA = -1;
-        static public int signB = 0;
+        public static int signA = -1;
+        public static int signB = 0;
         public static byte[] RegisterPlugin(MethodDelegate method)
         {
-            //results in allowing a max of 65536 plugin signatures if i did my math correctly.
+            // Results in allowing a max of 65536 plugin signatures if i did my math correctly.
             if (signA < 255)
             {
                 signA += 1;
@@ -158,17 +162,18 @@ namespace FiberLib
                 signB += 1;
                 signA = 0;
             }
+
             byte[] sign = [(byte)signA, (byte)signB];
 
             indexList.Add(sign);
             methodList.Add(method);
             return sign;
         }
-        static public void RunHandler(byte[] packet)
+        public static void RunHandler(byte[] packet)
         {
-            for(int i = 0;i<indexList.Count;i++)
+            for (int i = 0; i < indexList.Count; i++)
             {
-                if (indexList[i][0] == packet[2]&& indexList[i][1] == packet[3])
+                if (indexList[i][0] == packet[2] && indexList[i][1] == packet[3])
                 {
                     methodList[i](packet);
                     break;
@@ -177,6 +182,5 @@ namespace FiberLib
             }
 
         }
-
     }
 }
