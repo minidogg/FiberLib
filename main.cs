@@ -10,17 +10,18 @@ using UnityEngine.SceneManagement;
 using BepInEx.Logging;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
+using Steamworks.Data;
 
 
 namespace BoplBattleTemplate
 {
-    [BepInPlugin(pluginGuid, "LessLimit", "1.0.0")]
+    [BepInPlugin(pluginGuid, "FiberLib", "1.0.0")]
     [BepInProcess("BoplBattle.exe")]
     public class Plugin : BaseUnityPlugin
     {
-        public const string pluginGuid = "com.unluckycrafter.lesslimit";
-        public static int counter = 100;
-        public static int counter2 = 400;
+        public const string pluginGuid = "com.unluckycrafter.fiberlib";
+        public static SteamManager curManager;
+        public static SteamSocket curSocket;
 
 
         private void Awake()
@@ -29,53 +30,53 @@ namespace BoplBattleTemplate
             // Plugin startup logic
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_NAME} is loaded!");//feel free to remove this
             Harmony harmony = new Harmony(pluginGuid);
-            //spike
-            MethodInfo original = AccessTools.Method(typeof(Spike), "CastSpike");
-            MethodInfo patch = AccessTools.Method(typeof(Plugin), "CastSpike_p");
-            harmony.Patch(original, new HarmonyMethod(patch));
 
-            //blackhole and other
-            /*            MethodInfo original2 = AccessTools.Method(typeof(SlimeController), "isAbilityCastable");
-                        MethodInfo patch2 = AccessTools.Method(typeof(Plugin), "temp_p");
-                        harmony.Patch(original2, new HarmonyMethod(patch2));*/
+            //fetch manager
+            MethodInfo original3 = AccessTools.Method(typeof(SteamManager), "Update");
+            MethodInfo patch3 = AccessTools.Method(typeof(Plugin), "FetchManager");
+            harmony.Patch(original3, new HarmonyMethod(patch3));
 
+            //fetch socket
+/*            MethodInfo original5 = AccessTools.Method(typeof(SteamSocket), "Update");
+            MethodInfo patch5 = AccessTools.Method(typeof(Plugin), "FetchSocket");
+            harmony.Patch(original5, new HarmonyMethod(patch5));*/
 
-            //MethodInfo original = AccessTools.Field(typeof());
+            //packet interceptor
+            MethodInfo original4 = AccessTools.Method(typeof(SteamSocket), "OnMessage");
+            MethodInfo patch4 = AccessTools.Method(typeof(Plugin), "PacketInterceptor");
+            harmony.Patch(original4, new HarmonyMethod(patch4));
         }
 
-
-        public static bool temp_p()
+        public static bool FetchManager(ref SteamManager ___instance, ref SteamManager ___fields)
         {
+            ___fields.socket
+            curManager = ___instance;
+            return true;
+        }
+        public static bool FetchSocket(ref SteamSocket ___instance)
+        {
+            curSocket = ___instance;
+            return true;
+        }
+
+        public static bool PacketInterceptor(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
+        {
+            Console.WriteLine("Received packet: ");
+            Console.WriteLine("Data: "+data);
+            Console.WriteLine("Size: "+data);
+
 
             return true;
         }
-        public static bool CastSpike_p(ref SpikeAttack ___currentSpike)
+
+        private void OnGUI()
         {
-            ___currentSpike = null;
-            return true;
+            if(GUI.Button(new Rect(0,50,170f,30f),"Send Packet"))
+            {
+                Console.WriteLine("Sending packet!");
+                
+            }
         }
-
-
-
-        /*        public static bool UpdateSim_p(Fix simDeltaTime, ref Fix ___time, ref Fix ___SpawnDelay, ref int ___spawns, ref int ___MaxSpawns,ref AbilitySpawner __instance, ref FixTransform ___fixTrans)
-                {
-                    ___time += (GameTime.IsTimeStopped() ? Fix.Zero : simDeltaTime);
-                    if (___time > ___SpawnDelay)
-                    {
-                        ___time = Fix.Zero;
-                        //spawn
-                        DynamicAbilityPickup dynamicAbilityPickup = FixTransform.InstantiateFixed<DynamicAbilityPickup>(__instance.pickupPrefab, ___fixTrans.position);
-                        dynamicAbilityPickup.InitPickup(null, null, Updater.RandomUnitVector());
-                        dynamicAbilityPickup.SwapToRandomAbility();
-                        //
-                        ___spawns++;
-                        if (___spawns >= ___MaxSpawns)
-                        {
-                            __instance.enabled = false;
-                        }
-                    }
-                    return false;
-                }*/
 
     }
 }
