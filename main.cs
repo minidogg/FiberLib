@@ -34,11 +34,8 @@ namespace FiberLib
         private void handler(byte[] packet)
         {
             Console.WriteLine("Plugin received packet");
-            void loop(byte theByte)
-            {
-                Console.WriteLine(theByte);
-            }
-            packet.Do(loop);
+            byte[] data = PacketUtils.GetData(packet);
+            Console.WriteLine(Encoding.Default.GetString(data));
             return;
         }
         public byte[] testSignature;
@@ -47,7 +44,7 @@ namespace FiberLib
         {
             testSignature = PacketManager.RegisterPlugin(handler);
             // Plugin startup logic
-            Logger.LogInfo($"FiberLib is loaded!");//feel free to remove this
+            Logger.LogInfo($"FiberLib is loaded!");
             Harmony harmony = new Harmony(pluginGuid);
 
             //fetch manager
