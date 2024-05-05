@@ -47,7 +47,7 @@ namespace BoplBattleTemplate
             harmony.Patch(original4, new HarmonyMethod(patch4));
         }
 
-        public static bool FetchManager(ref SteamManager ___instance, ref SteamManager ___fields)
+        public static bool FetchManager(ref SteamManager ___instance)
         {
             curManager = ___instance;
             return true;
@@ -73,7 +73,7 @@ namespace BoplBattleTemplate
 
             //handling packets
             Console.WriteLine("Received a packet.");
-    
+
 
             //return to default method
             return true;
