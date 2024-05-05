@@ -42,7 +42,7 @@ namespace FiberLib
 
         private void Awake()
         {
-            testSignature = PacketManager.RegisterPlugin(handler);
+            /*testSignature = PacketManager.RegisterPlugin(handler);*/
             // Plugin startup logic
             Logger.LogInfo($"FiberLib is loaded!");
             Harmony harmony = new Harmony(pluginGuid);
