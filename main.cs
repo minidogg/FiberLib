@@ -115,7 +115,7 @@ namespace FiberLib
     {
         public delegate void PacketReciveHandler(byte[] data, Connection connection, NetIdentity identity);
 
-        private static readonly Dictionary<ushort, PacketReciveHandler> registeredMethods = [];
+        private static readonly List<PacketReciveHandler> registeredMethods = [];
 
         private static byte[] Combine(byte[] first, byte[] second, byte[] third)
         {
@@ -157,14 +157,18 @@ namespace FiberLib
 
             sign++;
 
-            registeredMethods.Add((ushort)sign, handler);
+            registeredMethods.Add(handler);
             return (ushort)sign;
         }
 
         public static void RunHandler(byte[] packet, Connection connection, NetIdentity identity)
         {
             ushort sign = PacketUtils.MakeUShort(packet[2], packet[3]);
-            registeredMethods[sign](packet, connection, identity);
+	    try
+	    {
+                registeredMethods[sign](packet, connection, identity);
+	    }
+	    catch (ArgumentOutOfRangeException) {}
         }
     }
 }
