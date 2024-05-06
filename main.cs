@@ -23,13 +23,16 @@ namespace FiberLib
     {
         public static byte[] signature = [223, 145];
     }
+
     [BepInPlugin(pluginGuid, "FiberLib", "1.1.0")]
     [BepInProcess("BoplBattle.exe")]
     public class FiberLibPlugin : BaseUnityPlugin
     {
         public const string pluginGuid = "com.unluckycrafter.fiberlib";
-        public static SteamManager curManager;
-        public static SteamSocket curSocket;
+        internal static SteamManager curManager;
+        //internal static SteamSocket curSocket;
+
+		private ushort testSignature;
 
         private void handler(byte[] packet, Connection connection, NetIdentity identity)
         {
@@ -38,18 +41,17 @@ namespace FiberLib
             Console.WriteLine(Encoding.Default.GetString(data));
             return;
         }
-        public byte[] testSignature;
 
         private void Awake()
         {
-            /*testSignature = PacketManager.RegisterPlugin(handler);*/
+            /*testSignature = PacketManager.RegisterPacketReciveHandler(handler);*/
             // Plugin startup logic
             Logger.LogInfo($"FiberLib is loaded!");
             Harmony harmony = new Harmony(pluginGuid);
 
             //fetch manager
             MethodInfo original3 = AccessTools.Method(typeof(SteamManager), "Update");
-            MethodInfo patch3 = AccessTools.Method(typeof(FiberLibPlugin), "FetchManager");
+            MethodInfo patch3 = AccessTools.Method(typeof(FiberLibPlugin), nameof(FetchManager));
             harmony.Patch(original3, new HarmonyMethod(patch3));
 
             //fetch socket
@@ -58,31 +60,24 @@ namespace FiberLib
                         harmony.Patch(original5, new HarmonyMethod(patch5));*/
 
             MethodInfo original4 = AccessTools.Method(typeof(SteamSocket), "OnMessage");
-            MethodInfo patch4 = AccessTools.Method(typeof(FiberLibPlugin), "OnMessageInterceptor");
+            MethodInfo patch4 = AccessTools.Method(typeof(FiberLibPlugin), nameof(OnMessageInterceptor));
             harmony.Patch(original4, new HarmonyMethod(patch4));
         }
 
-        public static bool FetchManager(ref SteamManager ___instance)
+        private static void FetchManager(ref SteamManager ___instance)
         {
             curManager = ___instance;
-            return true;
         }
 
-        public static byte[] messageBuffer = new byte[1];
-
-        public static bool OnMessageInterceptor(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
+		private static void OnMessageInterceptor(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
         {
             //setup for receiving packets
-            messageBuffer = new byte[size];
+            byte[] messageBuffer = new byte[size];
             Marshal.Copy(data, messageBuffer, 0, size);
-            if (!(messageBuffer[0] == metadata.signature[0] && messageBuffer[1] == metadata.signature[1])) return true;
+            if (messageBuffer[0] != metadata.signature[0] || messageBuffer[1] != metadata.signature[1]) return;
 
             //handling packets
             PacketManager.RunHandler(messageBuffer,  connection,  identity);
-
-
-            //return to default method
-            return true;
         }
 
 /*        private void OnGUI()
@@ -93,15 +88,16 @@ namespace FiberLib
                 PacketUtils.SendPacket(testSignature, Encoding.UTF8.GetBytes("Hello, World!"));
             }
         }*/
-
     }
+
     public class PacketUtils()
     {
-        public static void SendPacket(byte[] signature, byte[] sendData)
+        public static void SendPacket(ushort signature, byte[] sendData)
         {
-            byte[] data = PacketManager.constructPacket(signature, sendData);
-            PacketManager.distributePacket(FiberLibPlugin.curManager, data);
+            byte[] data = PacketManager.ConstructPacket(SplitUShort(signature), sendData);
+            PacketManager.DistributePacket(FiberLibPlugin.curManager, data);
         }
+
         public static byte[] GetData(byte[] byteArray)
         {
             byte[] result = new byte[byteArray.Length - 4];
@@ -110,23 +106,27 @@ namespace FiberLib
 
             return result;
         }
+
+        public static byte[] SplitUShort(ushort number) => [(byte)(number >> 8), (byte)number];
+        public static ushort MakeUShort(byte byte1, byte byte2) => (ushort)((byte1 << 8) + byte2);
     }
+
     public class PacketManager()
     {
-        public delegate void MethodDelegate(byte[] data, Connection connection, NetIdentity identity);
+        public delegate void PacketReciveHandler(byte[] data, Connection connection, NetIdentity identity);
 
-        private static List<byte[]> indexList = [];
-        private static List<MethodDelegate> methodList = new List<MethodDelegate>();
+        private static readonly Dictionary<ushort, PacketReciveHandler> registeredMethods = [];
+
         private static byte[] Combine(byte[] first, byte[] second, byte[] third)
         {
             byte[] ret = new byte[first.Length + second.Length + third.Length];
             Buffer.BlockCopy(first, 0, ret, 0, first.Length);
             Buffer.BlockCopy(second, 0, ret, first.Length, second.Length);
-            Buffer.BlockCopy(third, 0, ret, first.Length + second.Length,
-                             third.Length);
+            Buffer.BlockCopy(third, 0, ret, first.Length + second.Length, third.Length);
             return ret;
         }
-        public static byte[] constructPacket(byte[] pluginSignature, byte[] sendData)
+
+        internal static byte[] ConstructPacket(byte[] pluginSignature, byte[] sendData)
         {
             // Todo: discovered that it is more efficient to use a list and then convert it to an array
             int size = sendData.Length;
@@ -135,48 +135,36 @@ namespace FiberLib
 
             return data;
         }
-        public static bool distributePacket(SteamManager manager, byte[] packet, SendType sendType = SendType.Reliable)
+
+        internal static bool DistributePacket(SteamManager manager, byte[] packet, SendType sendType = SendType.Reliable)
         {
-            for (int i = 0; i < manager.connectedPlayers.Count; i++)
+            foreach (SteamConnection player in manager.connectedPlayers)
             {
-                manager.connectedPlayers[i].Connection.SendMessage(packet, sendType);
+                player.Connection.SendMessage(packet, sendType);
             }
             return true;
         }
 
-        public static int signA = -1;
-        public static int signB = 0;
-        public static byte[] RegisterPlugin(MethodDelegate method)
+        private static int sign = -1;
+        public static ushort RegisterPacketReciveHandler(PacketReciveHandler handler)
         {
-            // Results in allowing a max of 65536 plugin signatures if i did my math correctly.
-            if (signA < 255)
-            {
-                signA += 1;
-            }
-            else
-            {
-                signB += 1;
-                signA = 0;
-            }
+            if(handler == null)
+                throw new ArgumentNullException("handler was null");
 
-            byte[] sign = [(byte)signA, (byte)signB];
+            // Max 65536 plugin can be registered
+            if (sign >= ushort.MaxValue)
+                throw new OverflowException("Can't register plugin because there is too much registered plugin");
 
-            indexList.Add(sign);
-            methodList.Add(method);
-            return sign;
+            sign++;
+
+            registeredMethods.Add((ushort)sign, handler);
+            return (ushort)sign;
         }
+
         public static void RunHandler(byte[] packet, Connection connection, NetIdentity identity)
         {
-            for (int i = 0; i < indexList.Count; i++)
-            {
-                if (indexList[i][0] == packet[2] && indexList[i][1] == packet[3])
-                {
-                    methodList[i](packet,connection,identity);
-                    break;
-                }
-
-            }
-
+            ushort sign = PacketUtils.MakeUShort(packet[2], packet[3]);
+            registeredMethods[sign](packet, connection, identity);
         }
     }
 }
