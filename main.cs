@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Collections;
 using System.Text;
+using System.Linq;
 
 
 namespace FiberLib
@@ -88,7 +89,7 @@ namespace FiberLib
                 PacketManager.SendPacket(new Packet(testSignature, Encoding.UTF8.GetBytes("Hello, World!")));
             }
         }*/
-        }
+    }
     
     public struct Signature
     {
@@ -110,14 +111,14 @@ namespace FiberLib
 
     public class PacketUtils()
     {
-		internal static byte[] GetDataFromSteamPacket(byte[] byteArray)
-		{
-			byte[] result = new byte[byteArray.Length - 4];
+        internal static byte[] GetDataFromSteamPacket(byte[] byteArray)
+        {
+            byte[] result = new byte[byteArray.Length - 4];
 
-			Array.Copy(byteArray, 4, result, 0, result.Length);
+            Array.Copy(byteArray, 4, result, 0, result.Length);
 
-			return result;
-		}
+            return result;
+        }
 
         public static byte[] SplitUShort(ushort number) => [(byte)(number >> 8), (byte)number];
         public static ushort MakeUShort(byte byte1, byte byte2) => (ushort)((byte1 << 8) + byte2);
@@ -127,7 +128,7 @@ namespace FiberLib
     {
         public delegate void PacketReciveHandler(Packet packet, Connection connection, NetIdentity identity);
 
-        private static readonly List<PacketReciveHandler> registeredMethods = [];
+        private static readonly Dictionary<Signature, PacketReciveHandler> registeredMethods = [];
 
         private static byte[] Combine(byte[] first, byte[] second, byte[] third)
         {
@@ -169,23 +170,25 @@ namespace FiberLib
 
             sign++;
 
-            registeredMethods.Add(handler);
-            return new Signature((ushort)sign);
+            Signature signature = new((ushort)sign);
+            registeredMethods.Add(signature, handler);
+            return signature;
         }
 
-		public static void SendPacket(Packet packet)
-		{
-			byte[] data = ConstructPacket(PacketUtils.SplitUShort(packet.signature.sign), packet.data);
-			DistributePacket(FiberLibPlugin.curManager, data);
-		}
+        public static void SendPacket(Packet packet)
+        {
+            byte[] data = ConstructPacket(PacketUtils.SplitUShort(packet.signature.sign), packet.data);
+            DistributePacket(FiberLibPlugin.curManager, data);
+        }
 
-		internal static void RunHandler(byte[] packet, Connection connection, NetIdentity identity)
+        internal static void RunHandler(byte[] packet, Connection connection, NetIdentity identity)
         {
             Signature sign = new(PacketUtils.MakeUShort(packet[2], packet[3]));
             try
             {
                 byte[] data = PacketUtils.GetDataFromSteamPacket(packet);
-                registeredMethods[sign.sign](new Packet(sign, data), connection, identity);
+                // structs are hashed by value so making new with same values is the same struct
+                registeredMethods[sign](new Packet(sign, data), connection, identity);
             }
             catch (ArgumentOutOfRangeException) {}
         }
