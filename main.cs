@@ -44,7 +44,7 @@ namespace FiberLib
 
         private void Awake()
         {
-            testSignature = PacketManager.RegisterPacketReciveHandler(handler);
+            //testSignature = PacketManager.RegisterPacketReciveHandler(handler);
             // Plugin startup logic
             Logger.LogInfo($"FiberLib is loaded!");
             Harmony harmony = new Harmony(pluginGuid);
@@ -80,15 +80,15 @@ namespace FiberLib
             PacketManager.RunHandler(messageBuffer,  connection,  identity);
         }
 
-        private void OnGUI()
+        /*private void OnGUI()
         {
             if (GUI.Button(new Rect(0, 50, 170f, 30f), "Send Packet"))
             {
                 Console.WriteLine("Sending packet!");
                 PacketManager.SendPacket(new Packet(testSignature, Encoding.UTF8.GetBytes("Hello, World!")));
             }
+        }*/
         }
-    }
     
     public struct Signature
     {
@@ -110,6 +110,15 @@ namespace FiberLib
 
     public class PacketUtils()
     {
+		internal static byte[] GetDataFromSteamPacket(byte[] byteArray)
+		{
+			byte[] result = new byte[byteArray.Length - 4];
+
+			Array.Copy(byteArray, 4, result, 0, result.Length);
+
+			return result;
+		}
+
         public static byte[] SplitUShort(ushort number) => [(byte)(number >> 8), (byte)number];
         public static ushort MakeUShort(byte byte1, byte byte2) => (ushort)((byte1 << 8) + byte2);
     }
@@ -129,7 +138,7 @@ namespace FiberLib
             return ret;
         }
 
-        internal static byte[] ConstructPacket(byte[] pluginSignature, byte[] sendData)
+        private static byte[] ConstructPacket(byte[] pluginSignature, byte[] sendData)
         {
             // Todo: discovered that it is more efficient to use a list and then convert it to an array
             int size = sendData.Length;
@@ -139,7 +148,7 @@ namespace FiberLib
             return data;
         }
 
-        internal static bool DistributePacket(SteamManager manager, byte[] packet, SendType sendType = SendType.Reliable)
+        private static bool DistributePacket(SteamManager manager, byte[] packet, SendType sendType = SendType.Reliable)
         {
             foreach (SteamConnection player in manager.connectedPlayers)
             {
@@ -175,7 +184,8 @@ namespace FiberLib
             Signature sign = new(PacketUtils.MakeUShort(packet[2], packet[3]));
             try
             {
-                registeredMethods[sign.sign](new Packet(sign, packet), connection, identity);
+                byte[] data = PacketUtils.GetDataFromSteamPacket(packet);
+                registeredMethods[sign.sign](new Packet(sign, data), connection, identity);
             }
             catch (ArgumentOutOfRangeException) {}
         }
