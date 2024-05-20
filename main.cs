@@ -25,11 +25,11 @@ namespace FiberLib
         public static byte[] signature = [223, 145];
     }
 
-    [BepInPlugin(pluginGuid, "FiberLib", "1.1.0")]
+    [BepInPlugin(pluginGuid, "FiberLib", "1.2.0")]
     [BepInProcess("BoplBattle.exe")]
     public class FiberLibPlugin : BaseUnityPlugin
     {
-        public const string pluginGuid = "com.unluckycrafter.fiberlib";
+        public const string pluginGuid = "com.FiberDevs.FiberLib";
         internal static SteamManager curManager;
         //internal static SteamSocket curSocket;
 
@@ -45,7 +45,7 @@ namespace FiberLib
 
         private void Awake()
         {
-            //testSignature = PacketManager.RegisterPacketReciveHandler(handler);
+            // TestSignature = PacketManager.RegisterPacketReciveHandler(handler);
             // Plugin startup logic
             Logger.LogInfo($"FiberLib is loaded!");
             Harmony harmony = new Harmony(pluginGuid);
@@ -72,32 +72,32 @@ namespace FiberLib
 
         private static void OnMessageInterceptor(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
         {
-            //setup for receiving packets
+            // Setup for receiving packets
             byte[] messageBuffer = new byte[size];
             Marshal.Copy(data, messageBuffer, 0, size);
             if (messageBuffer[0] != metadata.signature[0] || messageBuffer[1] != metadata.signature[1]) return;
 
             //handling packets
-            PacketManager.RunHandler(messageBuffer,  connection,  identity);
+            PacketManager.RunHandler(messageBuffer, connection, identity);
         }
 
-        /*private void OnGUI()
+        /* Private void OnGUI()
         {
             if (GUI.Button(new Rect(0, 50, 170f, 30f), "Send Packet"))
             {
                 Console.WriteLine("Sending packet!");
                 PacketManager.SendPacket(new Packet(testSignature, Encoding.UTF8.GetBytes("Hello, World!")));
             }
-        }*/
+        } */
     }
-    
+
     public struct Signature
     {
         internal ushort sign;
 
         public Signature() => throw new UnauthorizedAccessException("Signature cannot be created");
 
-        internal Signature(ushort  sign)
+        internal Signature(ushort sign)
         {
             this.sign = sign;
         }
@@ -161,7 +161,7 @@ namespace FiberLib
         private static int sign = -1;
         public static Signature RegisterPacketReciveHandler(PacketReciveHandler handler)
         {
-            if(handler == null)
+            if (handler == null)
                 throw new ArgumentNullException("handler was null");
 
             // Max 65536 plugin can be registered
@@ -187,10 +187,10 @@ namespace FiberLib
             try
             {
                 byte[] data = PacketUtils.GetDataFromSteamPacket(packet);
-                // structs are hashed by value so making new with same values is the same struct
+                // Structs are hashed by value so making new with same values is the same struct
                 registeredMethods[sign](new Packet(sign, data), connection, identity);
             }
-            catch (ArgumentOutOfRangeException) {}
+            catch (ArgumentOutOfRangeException) { }
         }
     }
 }
