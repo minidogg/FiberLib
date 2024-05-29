@@ -100,14 +100,14 @@ namespace FiberLib
             PacketManager.RunHandler(messageBuffer, connection, identity);
         }
 
-        private void OnGUI()
+/*        private void OnGUI()
         {
             if (GUI.Button(new Rect(0, 50, 170f, 30f), "Send Packet"))
             {
                 Console.WriteLine("Sending packet!");
                 PacketManager.SendPacket(new Packet(testSignature, Encoding.UTF8.GetBytes("Hello, World!")));
             }
-        }
+        }*/
     }
 
     public struct Signature
