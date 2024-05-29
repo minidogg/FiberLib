@@ -16,6 +16,10 @@ using System.Drawing;
 using System.Collections;
 using System.Text;
 using System.Linq;
+using BepInEx.Configuration;
+using Steamworks;
+using System.Security.Principal;
+using System.Net.Sockets;
 
 
 namespace FiberLib
@@ -35,11 +39,13 @@ namespace FiberLib
 
         private Signature testSignature;
 
+
         private void handler(Packet packet, Connection connection, NetIdentity identity)
         {
             Console.WriteLine("Plugin received packet");
             byte[] data = packet.data;
             Console.WriteLine(Encoding.Default.GetString(data));
+            Console.WriteLine(packet.player);
             return;
         }
 
@@ -103,10 +109,11 @@ namespace FiberLib
         }
     }
 
-    public struct Packet(Signature signature, byte[] data)
+    public struct Packet(Signature signature, byte[] data, bool useNetIdentity = false, NetIdentity identity = new NetIdentity())
     {
         public Signature signature = signature;
         public byte[] data = data;
+        public Player player = useNetIdentity==true?PlayerHandler.Get().PlayerList().Find(x => x.steamId == identity.SteamId):new Player();
     }
 
     public class PacketUtils()
@@ -127,8 +134,8 @@ namespace FiberLib
     public class PacketManager()
     {
         public delegate void PacketReciveHandler(Packet packet, Connection connection, NetIdentity identity);
-
         private static readonly Dictionary<Signature, PacketReciveHandler> registeredMethods = [];
+
 
         private static byte[] Combine(byte[] first, byte[] second, byte[] third)
         {
@@ -188,7 +195,7 @@ namespace FiberLib
             {
                 byte[] data = PacketUtils.GetDataFromSteamPacket(packet);
                 // Structs are hashed by value so making new with same values is the same struct
-                registeredMethods[sign](new Packet(sign, data), connection, identity);
+                registeredMethods[sign](new Packet(sign, data,true,identity), connection, identity);
             }
             catch (ArgumentOutOfRangeException) { }
         }
