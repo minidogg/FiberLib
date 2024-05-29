@@ -45,7 +45,6 @@ namespace FiberLib
             Console.WriteLine("Plugin received packet");
             byte[] data = packet.data;
             Console.WriteLine(Encoding.Default.GetString(data));
-            Console.WriteLine(packet.player.Id);
             return;
         }
 
@@ -127,7 +126,7 @@ namespace FiberLib
     {
         public Signature signature = signature;
         public byte[] data = data;
-        public Player player = useNetIdentity == true ? PlayerHandler.Get().PlayerList().Find(x => x.steamId == identity.SteamId) : new Player();
+/*        public Player player = useNetIdentity == true ? PlayerHandler.Get().PlayerList().Find(x => x.steamId == identity.SteamId) : new Player();*/
     }
 
     public class PacketUtils()
