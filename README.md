@@ -16,7 +16,7 @@ public class MyMod : BaseUnityPlugin
 	private void ReciveHandler(Packet packet, Connection connection, NetIdentity identity)
 	{
 		byte[] data = packet.data;
-		Console.WriteLine($"recived {data.length} bytes");
+		Console.WriteLine($"recived {data.Length} bytes");
 	}
 
 	private void Awake()
