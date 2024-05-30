@@ -16,7 +16,7 @@ public class MyMod : BaseUnityPlugin
 	private void ReciveHandler(Packet packet, Connection connection, NetIdentity identity)
 	{
 		byte[] data = packet.data;
-		Console.WriteLine($"recived {data.length} bytes");
+		Console.WriteLine($"recived {data.Length} bytes");
 	}
 
 	private void Awake()
@@ -40,3 +40,8 @@ public class MyMod : BaseUnityPlugin
 	}
 }
 ```
+
+## Building
+1. Run setup.cmd and follow instructions
+2. Select build mode (Debug, Release, Thunderstore (only packages built dll))
+3. Done
