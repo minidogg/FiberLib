@@ -41,7 +41,7 @@ namespace FiberLib
         {
             logger = Logger;
             Logger.LogInfo($"FiberLib is loaded!");
-            Harmony harmony = new Harmony(pluginGuid);
+			Harmony harmony = new Harmony(pluginGuid);
 
             //fetch manager
             MethodInfo original3 = AccessTools.Method(typeof(SteamManager), "Update");
@@ -62,8 +62,8 @@ namespace FiberLib
         {
 			SteamId steamId = identity.SteamId;
 
-            // Setup for receiving packets
-            byte[] messageBuffer = new byte[size];
+			// Setup for receiving packets
+			byte[] messageBuffer = new byte[size];
             Marshal.Copy(data, messageBuffer, 0, size);
 
             if (!steamId.IsValid)
@@ -84,7 +84,7 @@ namespace FiberLib
             //handling packets
             PacketManager.RunHandler(messageBuffer, connection, identity);
         }
-            }
+    }
 
     public struct Signature
     {
@@ -98,7 +98,7 @@ namespace FiberLib
         }
     }
 
-    public struct Packet(Signature signature, byte[] data, bool useNetIdentity = false, NetIdentity identity = new NetIdentity())
+    public class Packet(Signature signature, byte[] data, bool useNetIdentity = false, NetIdentity identity = new NetIdentity())
     {
         public Signature signature = signature;
         public byte[] data = data;
@@ -176,7 +176,7 @@ namespace FiberLib
         {
             // Structs are hashed by value so making new with same values is the same struct
             Signature sign = new(PacketUtils.MakeUShort(packet[2], packet[3]));
-            try
+			try
             {
                 byte[] data = PacketUtils.GetDataFromSteamPacket(packet);
                 registeredMethods[sign](new Packet(sign, data, true, identity), connection, identity);
