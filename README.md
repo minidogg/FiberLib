@@ -40,3 +40,8 @@ public class MyMod : BaseUnityPlugin
 	}
 }
 ```
+
+## Building
+1. Run setup.cmd and follow instructions
+2. Select build mode (Debug, Release, Thunderstore (only packages built dll))
+3. Done
